@@ -1,12 +1,5 @@
 import { useState } from "react";
-
-function Key({ value, enterDigit, rowSpan, colSpan, color }) {
-    let c = 'digit';
-    c = rowSpan ? c + ' rowSpan' : c;
-    c = colSpan ? c + ' colSpan' : c;
-    c = color ? c + ' ' + color : c;
-    return <button className={c} onClick={() => enterDigit({ value })}>{value}</button>
-}
+import { Key } from "./Key.js";
 
 export default function Calculator() {
 
@@ -14,194 +7,134 @@ export default function Calculator() {
 
     let digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     let signs = ['+', '-', '*', '/', '=', '◄', 'C', '.'];
+    let operationSigns = ['+', '-', '*', '/'];
 
-    //handle backspace and delete keys to actually delete stuff in the input
+    // Handles special keys
     const handleOnKeyDown = (event) => {
+        handleDeleteKeys(event)
+        handleEnterKey(event)
+    }
+
+    const handleDeleteKeys = (event) => {
         let key = event.keyCode || event.charCode
 
-        if (key == 8 || key == 46) {
-            setEquation(equation.substring(0, equation.length - 1))
+        // 8 - backspace
+        // 46 - delete key
+        if (key !== 8 && key !== 46) {
+            return
         }
 
-        if (key == 13) {
-            if (signs.some(el => equation.includes(el))) {
-                if (!signs.includes(equation[equation.length - 1])) {
-                    setEquation(eval(equation).toString())
-                }
-            }
+        // Delete the last symbol in the equation
+        deleteLastSymbol()
+    }
+
+    const deleteLastSymbol = () => {
+        setEquation(equation.substring(0, equation.length - 1))
+    }
+
+    const handleEnterKey = (event) => {
+        let key = event.keyCode || event.charCode
+
+        // 13 - Enter
+        if (key !== 13) {
+            return
         }
+
+        // Don't proceed if we don't have at least one sign in the equation
+        if (!operationSigns.some(s => equation.includes(s))) {
+            return
+        }
+
+        // Don't calculate if the equation ends with a sign
+        if (signs.includes(equation[equation.length - 1])) {
+            return
+        }
+
+        // Evaluate the equation
+        setEquation(eval(equation).toString())
     }
 
     //using a second function to handle keyboard input. Event target value is null if you pass it in a function
-    const handleInputChnage = (event) => {
-
-        //disable backspace to replace characters
+    const handleInputChange = (event) => {
+        // Backspace can mess up the input so we're disabling it here
         if (event.target.value.length < equation.length && event.nativeEvent.inputType === 'deleteContentBackward') {
             return;
         }
 
-        //get just the newest value from the input rather than the whole value we already have
+        // Get only the last inserted symbol
         let value = event.target.value;
         value = value[value.length - 1]
 
-        if (value == '◄') {
-            setEquation(equation.substring(0, equation.length - 1))
+        handleInput(value)
+    }
+
+    const handleInput = (value) => {
+        if (value === '◄') {
+            deleteLastSymbol()
             return
         }
 
-        if (value == 'C') {
+        if (value === 'C') {
             setEquation('')
             return
         }
 
-        //allow only numbers and signs
+        // Allow only numbers and signs
         if (!digits.includes(value + '') && !signs.includes(value + '')) {
             return;
         }
 
-        //prevent numbers that start with 0
-        if (equation.length == 1) {
-            if (equation == '0') {
-                if (digits.includes(value.toString())) {
-                    return;
-                }
-            }
+        // Prevent numbers that start with 0
+        // If we have a 0 but we enter an operator, we will allow it
+        if (equation.length == 1 && equation === '0' && digits.includes(value.toString())) {
+            return;
         }
 
-        //prevent multiple signs chaining
+        // Prevent multiple signs chaining
         if (equation.length > 0) {
             if (signs.includes(equation[equation.length - 1]) && signs.includes(value)) {
                 return;
             }
         }
 
-        //prevent starting with a sign
-        if (equation.length == 0) {
-            if (signs.includes(value)) {
+        // Prevent starting with a sign
+        if (equation.length == 0 && signs.includes(value)) {
+            return;
+        }
+
+        // Prevent multiple decimal points
+        for (let i = equation.length - 1; i >= 0; i--) {
+            if (equation[i] == '.' && value == '.') {
+                return
+            }
+            else {
+                setEquation(equation + '.')
+                return
+            }
+        }
+
+        // Prevent numbers starting with a 0 after a sign is entered
+        // Ensure that the second last element is a sign different than a decimal point (.)
+        // Ensure that the last symbol is a 0
+        // Ensure that the new symbol you get is a sign
+        if (equation.length > 1) {
+            if (signs.includes(equation[equation.length - 2]) && equation[equation.length - 2] != '.' && equation[equation.length - 1] == '0' && !signs.includes(value)) {
                 return;
             }
         }
 
-        //prevent multiple decimal points
-        for (let i = equation.length - 1; i >= 0; i--) {
-            if (signs.includes(equation[i])) {
-                if (equation[i] == '.') {
-                    if (value == '.') {
-                        return
-                    }
-                }
-                else {
-                    if (value == '.') {
-                        setEquation(equation + '.')
-                        return
-                    }
-                }
-            }
+        // Handles evaluating
+        // Evaluate if we have at least one operator sign and we end with a digit
+        if (value == '=' && operationSigns.some(el => equation.includes(el)) && !operationSigns.includes(equation[equation.length - 1])) {
+            setEquation(eval(equation).toString())
         }
 
-        //prevent numbers starting with a 0 after a sign is entered
-        if (equation.length > 1) {
-            if (signs.includes(equation[equation.length - 2]) && equation[equation.length - 2] != '.') {
-                if (equation[equation.length - 1] == '0') {
-                    if (!signs.includes(value)) {
-                        return;
-                    }
-                }
-            }
-        }
-
-        //handles evaluating
-        if (value == '=') {
-            if (signs.some(el => equation.includes(el))) {
-                if (!signs.includes(equation[equation.length - 1])) {
-                    setEquation(eval(equation).toString())
-                }
-            }
-            return
-        }
-
+        // Append the new symbol to the equation
         setEquation(equation + '' + value)
     }
 
     function updateInput({ value }) {
-
-        if (value == '◄') {
-            setEquation(equation.substring(0, equation.length - 1))
-            return
-        }
-
-        if (value == 'C') {
-            setEquation('')
-            return
-        }
-
-        //allow only numbers and signs
-        if (!digits.includes(value + '') && !signs.includes(value + '')) {
-            return;
-        }
-
-        //prevent numbers that start with 0
-        if (equation.length == 1) {
-            if (equation == '0') {
-                if (digits.includes(value.toString())) {
-                    return;
-                }
-            }
-        }
-
-        //prevent multiple signs chaining
-        if (equation.length > 0) {
-            if (signs.includes(equation[equation.length - 1]) && signs.includes(value)) {
-                return;
-            }
-        }
-
-        //prevent starting with a sign
-        if (equation.length == 0) {
-            if (signs.includes(value)) {
-                return;
-            }
-        }
-
-        //prevent multiple decimal points
-        for (let i = equation.length - 1; i >= 0; i--) {
-            if (signs.includes(equation[i])) {
-                if (equation[i] == '.') {
-                    if (value == '.') {
-                        return
-                    }
-                }
-                else {
-                    if (value == '.') {
-                        setEquation(equation + '.')
-                        return
-                    }
-                }
-            }
-        }
-
-        //prevent numbers starting with a 0 after a sign is entered
-        if (equation.length > 1) {
-            if (signs.includes(equation[equation.length - 2]) && equation[equation.length - 2] != '.') {
-                if (equation[equation.length - 1] == '0') {
-                    if (!signs.includes(value)) {
-                        return;
-                    }
-                }
-            }
-        }
-
-        //handles evaluating
-        if (value == '=') {
-            if (signs.some(el => equation.includes(el))) {
-                if (!signs.includes(equation[equation.length - 1])) {
-                    setEquation(eval(equation).toString())
-                }
-            }
-            return
-        }
-
-        setEquation(equation + '' + value)
+        handleInput(value)
     }
 
     return (
@@ -211,13 +144,14 @@ export default function Calculator() {
                     <input
                         type="text"
                         value={equation}
-                        onChange={handleInputChnage}
+                        onChange={handleInputChange}
                         onKeyDown={handleOnKeyDown}
                         className="inputBox"
                     />
                     <div className="grid-container">
                         <Key value={'C'} enterDigit={updateInput} color={'gray'}></Key>
-                        <Key value={'◄'} enterDigit={updateInput} color={'gray'}></Key> {/* Windows = Alt + 17 */}
+                        {/* Alt + 17 on Windows to produce ◄ */}
+                        <Key value={'◄'} enterDigit={updateInput} color={'gray'}></Key>
                         <Key value={'/'} enterDigit={updateInput} color={'gray'}></Key>
                         <Key value={'*'} enterDigit={updateInput} color={'orange'}></Key>
                         <Key value={7} enterDigit={updateInput} color={'black'}></Key>
