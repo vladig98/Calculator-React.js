@@ -1,7 +1,5 @@
 # 🧮 React Calculator  
 
-🚀 **Live Demo:** [Try the Calculator](https://codesandbox.io/p/sandbox/calculator-xtw9dn)  
-
 A **React.js-based** calculator with a **modern, dynamic interface** and robust **input validation** to ensure accurate calculations. The application is designed for seamless user interaction, supporting both **mouse clicks and keyboard input** with custom key bindings.  
 
 ## 🎯 Features  
