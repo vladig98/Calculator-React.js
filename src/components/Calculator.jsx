@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Key } from "./Key.js";
+import { Key } from "./Key";
 
-export default function Calculator() {
+function Calculator() {
 
     const [equation, setEquation] = useState("");
 
@@ -51,7 +51,7 @@ export default function Calculator() {
         }
 
         // Evaluate the equation
-        setEquation(eval(equation).toString())
+        setEquation(calculate(equation))
     }
 
     //using a second function to handle keyboard input. Event target value is null if you pass it in a function
@@ -104,7 +104,11 @@ export default function Calculator() {
 
         // Prevent multiple decimal points
         for (let i = equation.length - 1; i >= 0; i--) {
-            if (equation[i] == '.' && value == '.') {
+            if (value != '.') {
+                break;
+            }
+
+            if (equation[i] == '.') {
                 return
             }
             else {
@@ -123,18 +127,88 @@ export default function Calculator() {
             }
         }
 
+        let numberEquation = Number(equation)
+
         // Handles evaluating
         // Evaluate if we have at least one operator sign and we end with a digit
         if (value == '=' && operationSigns.some(el => equation.includes(el)) && !operationSigns.includes(equation[equation.length - 1])) {
-            setEquation(eval(equation).toString())
+            setEquation(calculate(equation))
+        } else if (numberEquation === Infinity || numberEquation === -Infinity) {
+            // In case we divide by 0
+            setEquation('');
+        } else {
+            // Append the new symbol to the equation
+            setEquation(equation + '' + value)
         }
-
-        // Append the new symbol to the equation
-        setEquation(equation + '' + value)
     }
 
     function updateInput({ value }) {
         handleInput(value)
+    }
+
+    function calculate(expression) {
+        let md = ['*', '/']
+        let as = ['+', '-']
+
+        let result = evaluateExpression(as, expression, handleAdditionAndSubtraction)
+
+        // No addition or subtraction
+        if (result == expression) {
+            result = evaluateExpression(md, expression, handleMultiplicationAndDivision)
+        }
+
+        return Number(result)
+    }
+
+    function handleMultiplicationAndDivision(term1, term2, sign) {
+        if (sign === '*') {
+            return Number(term1) * Number(term2)
+        }
+
+        return Number(term1) / Number(term2)
+    }
+
+    function evaluateExpression(signs, term, evaluationFunction) {
+        if (!signs.some(sign => term.toString().includes(sign))) {
+            return term
+        }
+
+        let regexPattern = `[${signs.map(sign => `\\${sign}`).join('')}]`;
+        let regex = new RegExp(regexPattern, 'g')
+        let terms = term.split(regex).map(operand => operand.trim());
+        let expressionSigns = term.match(regex);
+
+        if (!expressionSigns) {
+            return term
+        }
+
+        let signIndex = 0;
+
+        do {
+            let leftTerm = terms[0]
+            let rightTerm = terms[1]
+            let currentSign = expressionSigns[signIndex]
+
+            terms.shift()
+            terms[0] = evaluationFunction(leftTerm, rightTerm, currentSign)
+            signIndex++
+        } while (terms.length > 1)
+
+        return Number(terms[0])
+    }
+
+    function handleAdditionAndSubtraction(term1, term2, sign) {
+        let md = ['*', '/']
+
+        // Needed for PEMDAS
+        term1 = evaluateExpression(md, term1, handleMultiplicationAndDivision)
+        term2 = evaluateExpression(md, term2, handleMultiplicationAndDivision)
+
+        if (sign === '+') {
+            return Number(term1) + Number(term2)
+        }
+
+        return Number(term1) - Number(term2)
     }
 
     return (
@@ -174,3 +248,5 @@ export default function Calculator() {
         </>
     );
 }
+
+export default Calculator;
