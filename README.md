@@ -1,6 +1,10 @@
 # 🧮 React Calculator  
 
 A **React.js-based** calculator with a **modern, dynamic interface** and robust **input validation** to ensure accurate calculations. The application is designed for seamless user interaction, supporting both **mouse clicks and keyboard input** with custom key bindings.  
+## 🚀 Live Demo
+
+You can check out the live version of this project here:  
+👉 [Live Demo](https://calculator-react-js-phi.vercel.app/)
 
 ## 🎯 Features  
 
